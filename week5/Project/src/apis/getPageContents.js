@@ -91,6 +91,7 @@ async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작�
     } catch (err) {
         throw err;
     }
+    pageRichText = pageRichText.join("").trim();
     return pageRichText;
 }
 
