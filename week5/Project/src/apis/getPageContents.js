@@ -61,86 +61,15 @@ async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작�
 }
 
 
-//     const allBlocks = [];
-//     let cursor = undefined;    
-//     while (true) { //모든 블록을 수집할 때까지 반복
-//     let res;
-//     try {
-//       res = await notion.blocks.children.list({
-//         block_id: pageId,
-//         page_size: 100,
-//         start_cursor: cursor,
-//       });
-//     } catch (err) {
-//       throw err;
-//     }
-
-//     allBlocks.push(...res.results);
-
-//     // 자식 있는 블록은 타입을 같이 넘기면서 재귀 호출
-//     for (const block of res.results) {
-//       if (block.has_children) {
-//         const childBlocks = await getAllBlocks(block.id);
-//         allBlocks.push(...childBlocks);
-//       }
-//     }
-
-//     if (!res.has_more) break;
-//     cursor = res.next_cursor;
-//   }
-
-//   return allBlocks;
-
-
 async function getPageContents(pageId) {
   const pageTitle = await getPageProperties(pageId);
   console.log("Page Title:", pageTitle);
 
   const blocks = await getAllBlocks(pageId);
-//   console.log("총 블록 개수:", blocks.length);
-
-  // 여기서 blocks를 가공해서 리턴해도 되고 그대로 RAG input으로 써도 됨
-  return { pageId, pageTitle };
+  return { pageId, pageTitle, blocks };
 }
 
 // 샘플 실행
 getPageContents("2925319a-55b8-8027-baa4-fc8b515bce21")
   .then(() => console.log("done"))
   .catch(console.error);
-
-
-
-
-
-
-// async function getPageContents(pageId) {
-
-//     pageTitle = await getPageProperties(pageId);
-//     console.log("Page Title: ", pageTitle)
-//     // console.log("Page Title: ", pageTitle)
-//     // console.log("Getting Page Contents...")
-//     const pageContents = await notion.blocks.children.list({ block_id: pageId });
-//     // console.log("Page Contents: ", pageContents)
-//     for (i=0; i<pageContents.results.length; i++){
-//         blockId = pageContents.results[i].id;
-//         console.log("부모ID : ", pageContents.results[i].id)
-//         if (pageContents.results[i].has_children === false){
-//             console.log("자식이 없는 블록입니다.")
-//             continue;
-//         }
-//         else if (pageContents.results[i].has_children === true){
-//             const childrenBlockIds = await notion.blocks.children.list({
-//                 block_id: blockId,
-//                 page_size: 50
-//               });
-//             console.log("자식 Block ID: ")
-//             for (j=0; j<childrenBlockIds.results.length; j++){
-//                 console.log("자식 Block ID: ", childrenBlockIds.results[j].id)
-//                 console.log("자식 Block Type: ", childrenBlockIds.results[j].type)
-//             }
-//             continue;
-//     }
-//     return pageContents;}
-// }
-
-// getPageContents("2925319a-55b8-8027-baa4-fc8b515bce21");
