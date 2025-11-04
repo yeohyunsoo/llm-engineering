@@ -25,4 +25,4 @@ async function getPageIds() {
     return pageIds;
 }
 
-getPageIds();
+module.exports = { getPageIds };
