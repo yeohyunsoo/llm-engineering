@@ -21,7 +21,7 @@ async function getPageIds() {
         cursor = res.next_cursor;
     }
 
-    console.log("Retrieved page IDs: ", pageIds)
+    // console.log("Retrieved page IDs: ", pageIds)
     return pageIds;
 }
 
