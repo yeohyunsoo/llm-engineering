@@ -8,7 +8,8 @@ async function getPageProperties(pageId) {
     // console.log("Page Properties: ", pageProperties)
     // console.log("구분선 yayaya")
     // console.log(pageProperties.properties.title)
-    return pageProperties.properties;
+    const pageTitle = pageProperties.properties.title.title[0].plain_text;
+    return pageTitle
 }
-
+    
 module.exports = { getPageProperties };

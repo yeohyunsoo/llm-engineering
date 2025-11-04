@@ -3,8 +3,32 @@
 const { notion } = require("../utils/connectNotionClient");
 const { getPageProperties } = require("./getPageProperties");
 
+async function fetchBlockWithChildren(notion, block) {
+    if (!block.has_children) return block;
+  
+    const children = [];
+    let cursor;
+  
+    do {
+      const { results, has_more, next_cursor } =
+        await notion.blocks.children.list({
+          block_id: block.id,
+          start_cursor: cursor,
+        });
+  
+      for (const child of results) {
+        children.push(await fetchBlockWithChildren(notion, child));
+      }
+  
+      cursor = has_more ? next_cursor : undefined;
+    } while (cursor);
+  
+    return { ...block, children };
+}
+
 // blockId 아래 모든 블록을 재귀적으로 수집
 async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작해서 모든 블록을 재귀적으로 수집
+    let pageRichText = [];
     let allBlockIds = [];
     let parentBlockIds = [];
 
@@ -13,7 +37,7 @@ async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작�
         for (let i = 0; i < raw.results.length; i++) {
         parentBlockIds.push(raw.results[i].id);
         }
-        console.log("Parent Block IDs: ", parentBlockIds);
+        // console.log("Parent Block IDs: ", parentBlockIds);
     } catch (err) {
         throw err;
     }
@@ -34,14 +58,22 @@ async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작�
                     const blockType = raw.results[j].type;          // 예: "paragraph"
                     const blockData = raw.results[j][blockType];    // 해당 타입에 맞는 데이터 객체
                     const richText = blockData?.rich_text?.[0]?.text?.content ?? "";    // 일부 블록은 rich_text가 없을 수 있으니 안전하게 처리
-                    console.log("이것이 컨텐츠가 맞는가?: ", richText);
+                    pageRichText.push(richText);
+                    // console.log("이것이 컨텐츠가 맞는가?: ", richText);
 
                     if (raw.results[j].has_children) {
-                        console.log("yayaya");
+                        // console.log("yayaya");
+                        const child = await fetchBlockWithChildren(notion, raw.results[j].id);
+                        // console.log("내가증손자다: ", child)
+                        for(let k = 0; k < child.length; k++) {
+                            childBlockIds.push(child[k].id);
+                            const blockType = child[k].type;          // 예: "paragraph"
+                            const blockData = child[k][blockType];    // 해당 타입에 맞는 데이터 객체
+                            const richText = blockData?.rich_text?.[0]?.text?.content ?? "";  // 일부 블록은 rich_text가 없을 수 있으니 안전하게 처리
+                            pageRichText.push(richText);
+                        }
                     }
-                    else {
-                        console.log(" ");
-                    }
+                    
                 }
 
                 if (!raw.has_more) {
@@ -52,24 +84,31 @@ async function getAllBlocks(pageId) { //최상위의 Block인 PageId로 시작�
             }
 
             allBlockIds.push({ parentBlockId: parentBlockIds[i], childBlockIds });
+
         }
 
-        console.log("All Block IDs: ", allBlockIds);
+        // console.log("All Block IDs: ", allBlockIds);
     } catch (err) {
         throw err;
     }
+    return pageRichText;
 }
 
 
 async function getPageContents(pageId) {
-  const pageTitle = await getPageProperties(pageId);
-  console.log("Page Title:", pageTitle);
+    let pageContents = [];
+    const pageTitle = await getPageProperties(pageId);
+//   console.log("Page Title:", pageTitle);
 
-  const blocks = await getAllBlocks(pageId);
-  return { pageId, pageTitle, blocks };
+    const pageRichTexts = await getAllBlocks(pageId);
+//   return { pageId, pageTitle, blocks };
+    pageContents.push({metadata: {pageId: pageId, pageTitle: pageTitle}, contents: pageRichTexts});
+    return pageContents;
 }
 
 // 샘플 실행
 getPageContents("2925319a-55b8-8027-baa4-fc8b515bce21")
-  .then(() => console.log("done"))
-  .catch(console.error);
+    .then((result) => console.log("done", result))
+    .catch(console.error);
+
+module.exports = { getPageContents };
