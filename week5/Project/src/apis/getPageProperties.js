@@ -19,7 +19,7 @@ async function getPageProperties(pageId) {
 
     console.log("pageTitle: ", pageTitle);
 
-    return pageTitle;
+    return pageId, pageTitle;
 }
 
 /* TEST CODE */

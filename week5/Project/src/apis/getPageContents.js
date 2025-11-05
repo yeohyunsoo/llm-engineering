@@ -3,17 +3,37 @@
 const { notion } = require("../utils/connectNotionClient");
 const { getPageProperties } = require("./getPageProperties");
 
+const UNSUPPORTED_CHILD_BLOCK_TYPES = new Set(["transcription"]);
+
 async function fetchBlockTree(blockId) {
     const blocks = [];
     let cursor;
 
     do {
-        const { results, has_more, next_cursor } = await notion.blocks.children.list({
-            block_id: blockId,
-            start_cursor: cursor,
-        });
+        let response;
+
+        try {
+            response = await notion.blocks.children.list({
+                block_id: blockId,
+                start_cursor: cursor,
+            });
+        } catch (error) {
+            if (error?.code === "validation_error" && /transcription/i.test(error?.message ?? "")) {
+                console.warn("transcription 블록은 하위 목록 조회가 지원되지 않아 건너뜁니다.", { blockId });
+                break;
+            }
+
+            throw error;
+        }
+
+        const { results, has_more, next_cursor } = response;
 
         for (const block of results) {
+            if (UNSUPPORTED_CHILD_BLOCK_TYPES.has(block.type)) {
+                blocks.push({ ...block, children: [] });
+                continue;
+            }
+
             const children = block.has_children && block.type !== "child_page"
                 ? await fetchBlockTree(block.id)
                 : [];
